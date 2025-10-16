@@ -1,4 +1,5 @@
 .env
+.chats
 __pychache__/
 *.pyc
 *.session

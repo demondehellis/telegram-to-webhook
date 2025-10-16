@@ -17,8 +17,9 @@ client = TelegramClient(session_name, api_id, api_hash)
 async def main():
     await client.start()
 
-    chat_urls = chats_str.split(',')
-    chat_ids = [await parse_chat_id(url) for url in chat_urls if url.strip()]
+    with open('.chats', 'r') as f:
+        chat_urls = [line.strip() for line in f if line.strip() and not line.strip().startswith('#')]
+    chat_ids = [await parse_chat_id(url) for url in chat_urls]
     chat_ids = [chat_id for chat_id in chat_ids if chat_id]
 
     print(f"Listening to chats: {chat_ids}")
@@ -40,7 +41,7 @@ async def main():
         }
         
         try:
-            # requests.post(webhook_url, json=data)
+            requests.post(webhook_url, json=data)
             print(f"Webhook sent: {data}")
         except requests.exceptions.RequestException as e:
             print(f"Failed to send webhook: {e}")
