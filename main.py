@@ -44,17 +44,20 @@ async def main():
             print(f"Chat ID {event.chat_id} not in allowed list, skipping webhook.")
             return
 
-        data = await build_webhook_data(event)
+        chat = await event.get_chat()
+        print(chat)
+
+        sender = await event.get_sender()
+        print(sender)
+
+        data = await build_webhook_data(chat, sender)
         try:
-            # requests.post(webhook_url, json=data)
+            requests.post(webhook_url, json=data)
             print(f"Webhook sent: {data}")
         except requests.exceptions.RequestException as e:
             print(f"Failed to send webhook: {e}")
 
-    async def build_webhook_data(event) -> dict[str, str | Any]:
-        chat = await event.get_chat()
-        sender = await event.get_sender()
-
+    async def build_webhook_data(chat, sender) -> dict[str, str | Any]:
         chat_name = await get_chat_name(chat)
         sender_name = await get_sender_name(sender)
 
