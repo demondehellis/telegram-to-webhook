@@ -1,6 +1,7 @@
 .env
 .chats
 __pychache__/
+.idea/
 *.pyc
 *.session
 *.session-journal
