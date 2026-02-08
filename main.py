@@ -30,7 +30,40 @@ def get_allowed_chat_ids():
 client = TelegramClient(session_name, api_id, api_hash)
 
 
+# New helper: build headers for webhook requests
+def get_webhook_headers() -> dict[str, str]:
+    """Return headers for webhook requests.
+
+    Reads CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET from the environment
+    and, if present, includes them as Cloudflare Access headers. Always
+    sets Content-Type: application/json.
+    """
+    headers: dict[str, str] = {"Content-Type": "application/json"}
+
+    cf_id = os.getenv("CF_ACCESS_CLIENT_ID")
+    cf_secret = os.getenv("CF_ACCESS_CLIENT_SECRET")
+
+    if cf_id:
+        headers["CF-Access-Client-Id"] = cf_id
+    if cf_secret:
+        headers["CF-Access-Client-Secret"] = cf_secret
+
+    return headers
+
+
 async def main():
+    # Ensure webhook URL exists before starting the client
+    if not webhook_url:
+        print("WEBHOOK_URL is not set. Set the WEBHOOK_URL environment variable to a valid endpoint and restart.")
+        return
+
+    # Log presence of Cloudflare Access headers (but do not print secrets)
+    headers = get_webhook_headers()
+    if "CF-Access-Client-Id" in headers:
+        print("CF-Access-Client-Id header will be sent with webhooks.")
+    if "CF-Access-Client-Secret" in headers:
+        print("CF-Access-Client-Secret header will be sent with webhooks.")
+
     await client.start()
     excluded_chat_ids = get_excluded_chat_ids()
     allowed_chat_ids = get_allowed_chat_ids()
@@ -46,8 +79,11 @@ async def main():
 
         data = await build_webhook_data(event)
         try:
-            requests.post(webhook_url, json=data)
-            print(f"Webhook sent: {data}")
+            headers = get_webhook_headers()
+            # include headers when sending the webhook
+            resp = requests.post(webhook_url, json=data, headers=headers, timeout=10)
+            resp.raise_for_status()
+            print(f"Webhook sent (status={resp.status_code}): {data}")
         except requests.exceptions.RequestException as e:
             print(f"Failed to send webhook: {e}")
 
