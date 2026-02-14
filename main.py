@@ -95,11 +95,13 @@ async def main():
         print(sender)
 
         chat_name = await get_chat_name(chat)
+        chat_type = await get_chat_type(event, chat)
         sender_name = await get_sender_name(sender)
 
         return {
             "chat_id": event.chat_id,
             "chat_name": chat_name,
+            "chat_type": chat_type,
             "sender_id": event.sender_id,
             "sender_name": sender_name,
             "message": event.message.message,
@@ -124,6 +126,23 @@ async def main():
         elif hasattr(chat, "title") and chat.title:
             chat_name = chat.title
         return chat_name
+
+    async def get_chat_type(event, chat) -> str:
+        if event.is_private:
+            return "direct"
+
+        if getattr(chat, "broadcast", False):
+            return "channel"
+
+        if getattr(chat, "megagroup", False) or getattr(chat, "gigagroup", False):
+            return "group"
+
+        if event.is_group:
+            return "group"
+        if event.is_channel:
+            return "channel"
+
+        return "unknown"
 
     print("Client started. Listening for messages...")
     await client.run_until_disconnected()
