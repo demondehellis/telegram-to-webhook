@@ -6,6 +6,9 @@ services:
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
+    extra_hosts:
+      # Resolve custom n8n domain inside the container via Docker host gateway.
+      - "n8n.localhost:host-gateway"
     volumes:
       - .:/app
     working_dir: /app
