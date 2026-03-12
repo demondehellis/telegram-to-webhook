@@ -11,7 +11,7 @@ session_name = "session"
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 webhook_url = os.getenv("WEBHOOK_URL")
-
+webhook_test_url = os.getenv("WEBHOOK_TEST_URL")
 
 def get_excluded_chat_ids():
     excluded_chats = os.getenv("EXCLUDED_CHATS")
@@ -53,8 +53,8 @@ def get_webhook_headers() -> dict[str, str]:
 
 async def main():
     # Ensure webhook URL exists before starting the client
-    if not webhook_url:
-        print("WEBHOOK_URL is not set. Set the WEBHOOK_URL environment variable to a valid endpoint and restart.")
+    if not webhook_url and not webhook_test_url:
+        print("WEBHOOK_URL or WEBHOOK_TEST_URL environment variable must be set.")
         return
 
     # Log presence of Cloudflare Access headers (but do not print secrets)
@@ -76,14 +76,22 @@ async def main():
         if allowed_chat_ids and str(event.chat_id) not in allowed_chat_ids:
             print(f"Chat ID {event.chat_id} not in allowed list, skipping webhook.")
             return
+        if not event.message or not event.message.message:
+            print("Received message event with no text content, skipping webhook.")
+            return
 
         data = await build_webhook_data(event)
         try:
             headers = get_webhook_headers()
             # include headers when sending the webhook
-            resp = requests.post(webhook_url, json=data, headers=headers, timeout=10)
-            resp.raise_for_status()
-            print(f"Webhook sent (status={resp.status_code}): {data}")
+            if webhook_url:
+                resp = requests.post(webhook_url, json=data, headers=headers, timeout=10)
+                resp.raise_for_status()
+                print(f"Webhook sent (status={resp.status_code}): {data}")
+            if webhook_test_url:
+                resp = requests.post(webhook_test_url, json=data, headers=headers, timeout=10)
+                resp.raise_for_status()
+                print(f"Webhook test (status={resp.status_code}): {data}")
         except requests.exceptions.RequestException as e:
             print(f"Failed to send webhook: {e}")
 
